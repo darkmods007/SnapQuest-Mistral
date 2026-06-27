@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<title>SnapQuest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+/* GARDER EXACTEMENT LES MÊMES STYLES QUE DANS LE FICHIER PRÉCÉDENT */
+:root{--bg:#0a0a0f;--bg2:#0f0f18;--surface:rgba(255,255,255,0.04);--surface2:rgba(255,255,255,0.07);--border:rgba(255,255,255,0.08);--text:#f0f0f8;--text2:#9090b0;--text3:#50506a;--accent:#8b5cf6;--pink:#ec4899;--cyan:#22d3ee;--green:#10b981;--red:#f43f5e;--amber:#f59e0b;--radius:18px;--radius-sm:12px;--bottom-nav-h:70px;--grad:linear-gradient(135deg,#8b5cf6,#6366f1)}
+[data-theme="ocean"]{--accent:#0ea5e9;--pink:#06b6d4;--grad:linear-gradient(135deg,#0ea5e9,#06b6d4);--bg:#020b18;--bg2:#041526}
+[data-theme="rose"]{--accent:#f43f5e;--pink:#fb7185;--grad:linear-gradient(135deg,#f43f5e,#fb923c);--bg:#120008;--bg2:#1a0010}
+[data-theme="forest"]{--accent:#10b981;--pink:#34d399;--grad:linear-gradient(135deg,#10b981,#06b6d4);--bg:#020f08;--bg2:#04170d}
+[data-theme="gold"]{--accent:#f59e0b;--pink:#fbbf24;--grad:linear-gradient(135deg,#f59e0b,#f43f5e);--bg:#0f0a00;--bg2:#1a1000}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(139,92,246,.3);border-radius:99px}
+#toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;max-width:320px}
+.toast{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(15,15,24,.97);border:1px solid var(--border);border-radius:var(--radius-sm);backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,.5);font-size:14px;font-weight:500;animation:toastIn .35s cubic-bezier(.34,1.56,.64,1) forwards;pointer-events:all}
+.toast.out{animation:toastOut .25s ease forwards}
+.toast-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+@keyframes toastIn{from{opacity:0;transform:translateX(100%) scale(.9)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(110%) scale(.9)}}
+.notif-badge{position:absolute;top:-4px;right:-6px;background:var(--red);color:white;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:99px;padding:0 4px;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);animation:badgePop .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes badgePop{from{transform:scale(0)}to{transform:scale(1)}}
+.header{position:sticky;top:0;z-index:100;background:rgba(10,10,15,.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);height:60px;display:flex;align-items:center}
+.header-inner{width:100%;max-width:1100px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;cursor:pointer}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(139,92,246,.35);animation:logoBreathe 3s ease-in-out infinite}
+@keyframes logoBreathe{0%,100%{box-shadow:0 0 20px rgba(139,92,246,.35)}50%{box-shadow:0 0 32px rgba(139,92,246,.6)}}
+.logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.desk-nav{display:flex;align-items:center;gap:2px}
+.desk-nav-btn{position:relative;display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:var(--radius-sm);border:none;cursor:pointer;background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;transition:all .2s}
+.desk-nav-btn:hover{background:var(--surface2);color:var(--text)}
+.desk-nav-btn.active{background:rgba(139,92,246,.15);color:var(--accent)}
+.desk-nav-btn svg{width:18px;height:18px}
+.header-actions{display:flex;align-items:center;gap:8px}
+.avatar-ring{padding:2px;border-radius:50%;background:var(--grad);cursor:pointer}
+.icon-btn{width:36px;height:36px;border-radius:10px;border:none;background:var(--surface);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.icon-btn:hover{background:var(--surface2);color:var(--text)}
+.icon-btn.logout-btn:hover{background:rgba(244,63,94,.12);color:var(--red)}
+.icon-btn svg{width:18px;height:18px}
+.stats-bar{background:rgba(139,92,246,.06);border-bottom:1px solid rgba(139,92,246,.1);padding:7px 20px;display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap}
+.stat-pill{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text2)}
+.stat-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(16,185,129,.6);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--bottom-nav-h);background:rgba(10,10,15,.97);backdrop-filter:blur(24px);border-top:1px solid var(--border);z-index:100;display:none}
+.bottom-nav-inner{height:100%;display:flex;align-items:center;justify-content:space-around;padding:0 8px}
+.mob-nav-btn{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;border-radius:var(--radius-sm);border:none;cursor:pointer;background:transparent;color:var(--text3);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;transition:all .2s;min-width:56px}
+.mob-nav-btn.active{color:var(--accent)}
+.mob-nav-btn.active .mob-icon-wrap{background:rgba(139,92,246,.15)}
+.mob-icon-wrap{width:40px;height:30px;border-radius:99px;display:flex;align-items:center;justify-content:center;transition:all .2s;position:relative}
+.mob-nav-btn svg{width:22px;height:22px}
+.mob-notif-badge{position:absolute;top:-2px;right:-2px;background:var(--red);color:white;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:99px;padding:0 3px;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+.main{flex:1;max-width:1100px;margin:0 auto;width:100%;padding:20px 20px 40px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);backdrop-filter:blur(12px);transition:border-color .2s}
+.card:hover{border-color:rgba(139,92,246,.15)}
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:var(--radius-sm);background:var(--grad);color:white;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;transition:all .2s;box-shadow:0 4px 20px rgba(139,92,246,.3)}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 28px rgba(139,92,246,.45)}
+.btn-primary:active:not(:disabled){transform:translateY(0)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);background:transparent;color:var(--text2);border:1px solid var(--border);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;transition:all .2s}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);border-color:rgba(139,92,246,.25)}
+.input{width:100%;padding:12px 16px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:all .2s}
+.input::placeholder{color:var(--text3)}
+.input:focus{border-color:rgba(139,92,246,.5);background:rgba(139,92,246,.06)}
+textarea.input{resize:none;line-height:1.5}
+.auth-screen{min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);background-image:radial-gradient(ellipse at 20% 50%,rgba(139,92,246,.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(236,72,153,.06) 0%,transparent 50%)}
+.auth-center{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-card{width:100%;max-width:420px}
+.auth-logo-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:36px}
+.auth-logo-icon{width:72px;height:72px;border-radius:22px;background:var(--grad);display:flex;align-items:center;justify-content:center;box-shadow:0 0 50px rgba(139,92,246,.4),0 0 100px rgba(139,92,246,.1)}
+.auth-logo-icon svg{width:38px;height:38px;color:white}
+.auth-title{font-family:'Syne',sans-serif;font-weight:800;font-size:34px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-subtitle{color:var(--text2);font-size:15px}
+.auth-form{display:flex;flex-direction:column;gap:12px}
+.auth-footer{background:rgba(255,255,255,.02);border-top:1px solid var(--border)}
+.auth-footer-inner{text-align:center;padding:20px;color:var(--text3);font-size:13px}
+.powered{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.05em;color:var(--accent);opacity:.8}
+.loading-screen{min-height:100dvh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.spinner{width:40px;height:40px;border-radius:50%;border:3px solid rgba(139,92,246,.15);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.stories-bar{padding:16px 0 12px;overflow-x:auto;display:flex;gap:12px;scrollbar-width:none;-ms-overflow-style:none}
+.stories-bar::-webkit-scrollbar{display:none}
+.story-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;flex-shrink:0}
+.story-ring{padding:2px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--pink))}
+.story-ring-inner{padding:2px;border-radius:50%;background:var(--bg);display:flex}
+.story-add-btn{width:56px;height:56px;border-radius:50%;background:var(--surface2);border:2px dashed rgba(139,92,246,.4);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0}
+.story-add-btn:hover{background:rgba(139,92,246,.1);border-color:var(--accent)}
+.story-add-btn svg{width:22px;height:22px;color:var(--accent)}
+.story-name{font-size:11px;color:var(--text2);font-weight:500;white-space:nowrap;max-width:64px;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.story-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+.story-viewer{width:100%;max-width:400px;position:relative;height:100dvh;max-height:780px;display:flex;flex-direction:column;background:#000;border-radius:var(--radius);overflow:hidden}
+.story-progress-bar{display:flex;gap:4px;padding:12px 12px 0;position:absolute;top:0;left:0;right:0;z-index:2}
+.story-seg{flex:1;height:3px;background:rgba(255,255,255,.3);border-radius:99px;overflow:hidden}
+.story-seg-fill{height:100%;background:white;animation:storyProgress 5s linear forwards}
+@keyframes storyProgress{from{width:0}to{width:100%}}
+.story-header-overlay{position:absolute;top:22px;left:0;right:0;z-index:2;padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.story-img{width:100%;height:100%;object-fit:cover}
+.story-caption-overlay{position:absolute;bottom:0;left:0;right:0;padding:40px 20px 24px;background:linear-gradient(transparent,rgba(0,0,0,.7));z-index:2;color:white;font-size:15px;line-height:1.5}
+.story-close{width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.5);border:none;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.search-wrap{position:relative;max-width:620px;margin:0 auto 16px}
+.search-input{width:100%;padding:11px 16px 11px 42px;background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:all .2s}
+.search-input::placeholder{color:var(--text3)}
+.search-input:focus{border-color:rgba(139,92,246,.45);background:rgba(139,92,246,.06)}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);width:18px;height:18px;pointer-events:none}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;justify-content:center}
+.filter-chip{padding:6px 14px;border-radius:99px;font-size:13px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.filter-chip:hover{border-color:rgba(139,92,246,.3);color:var(--text)}
+.filter-chip.active{background:rgba(139,92,246,.15);border-color:var(--accent);color:var(--accent)}
+.fullscreen-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.96);display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease;cursor:zoom-out}
+.fullscreen-img{max-width:95vw;max-height:95vh;object-fit:contain;border-radius:var(--radius-sm)}
+.fullscreen-close{position:fixed;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);z-index:401}
+.fullscreen-info{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);padding:10px 20px;border-radius:99px;color:white;font-size:13px;white-space:nowrap;z-index:401}
+.theme-panel{position:fixed;top:68px;right:16px;z-index:200;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;width:200px;box-shadow:0 16px 48px rgba(0,0,0,.6);animation:toastIn .25s ease}
+.theme-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.theme-dot{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .2s}
+.theme-dot.active{border-color:white;transform:scale(1.15)}
+.feed{max-width:620px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.post-card{border-radius:var(--radius);overflow:hidden;background:var(--surface);border:1px solid var(--border)}
+.post-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.post-user{display:flex;align-items:center;gap:10px}
+.post-image{width:100%;display:block;max-height:600px;object-fit:cover;background:#0f0f18;cursor:zoom-in}
+.post-actions{padding:12px 16px 0;display:flex;align-items:center;gap:16px}
+.like-btn{display:flex;align-items:center;gap:7px;border:none;background:transparent;cursor:pointer;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;padding:6px 0;transition:all .2s}
+.like-btn:hover{color:var(--pink)}.like-btn.liked{color:var(--pink)}
+.like-btn svg{width:26px;height:26px;transition:transform .15s cubic-bezier(.34,1.56,.64,1)}
+.like-btn:hover svg,.like-btn.liked svg{transform:scale(1.15)}
+.post-caption{padding:10px 16px 0;font-size:14px;line-height:1.6}
+.post-caption strong{font-weight:600;margin-right:6px}
+.reactions-row{display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap;min-height:0}
+.reaction-btn{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;color:var(--text2);font-family:'DM Sans',sans-serif}
+.reaction-btn:hover{background:var(--surface2);transform:scale(1.05)}
+.reaction-btn.reacted{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.3);color:var(--accent)}
+.reaction-picker{display:flex;gap:6px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:99px;box-shadow:0 8px 24px rgba(0,0,0,.4);position:absolute;bottom:calc(100% + 8px);left:0;z-index:10;animation:toastIn .2s ease}
+.reaction-pick-btn{width:36px;height:36px;border-radius:50%;border:none;background:transparent;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.reaction-pick-btn:hover{background:var(--surface2);transform:scale(1.2)}
+.comments-list{padding:0 16px;margin-top:8px;display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto}
+.comment-item{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:10px;font-size:13px;line-height:1.5}
+.comment-item strong{font-weight:600;display:block;margin-bottom:2px;font-size:12px;color:var(--text2)}
+.comment-input-wrap{padding:12px 16px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);margin-top:10px}
+.comment-input{flex:1;padding:8px 14px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:99px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:all .2s}
+.comment-input::placeholder{color:var(--text3)}
+.comment-input:focus{border-color:rgba(139,92,246,.4)}
+.comment-send-btn{padding:7px 14px;border-radius:99px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;transition:all .2s}
+.comment-send-btn:disabled{background:transparent;color:var(--text3)}
+.comment-send-btn:not(:disabled){background:rgba(139,92,246,.2);color:var(--accent)}
+.translate-btn{font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px;opacity:.7;transition:opacity .2s;font-family:'DM Sans',sans-serif;margin-top:3px;display:inline-block}
+.translate-btn:hover{opacity:1}
+.translated-text{font-size:12px;color:var(--text3);margin-top:3px;font-style:italic}
+.level-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:700;border:1px solid currentColor}
+.verified-badge{display:inline-flex;align-items:center;color:var(--accent);margin-left:3px}
+.verified-badge svg{width:14px;height:14px}
+.xp-bar-wrap{height:4px;background:var(--surface2);border-radius:99px;overflow:hidden;margin-top:6px}
+.xp-bar-fill{height:100%;border-radius:99px;background:var(--grad);transition:width .6s ease}
+.chat-wrap{max-width:700px;margin:0 auto}
+.chat-box{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.chat-header{padding:16px 20px;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(99,102,241,.1));border-bottom:1px solid var(--border)}
+.chat-header-icon{width:40px;height:40px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center}
+.chat-header-icon svg{width:20px;height:20px;color:white}
+.chat-messages{flex:1;height:55vh;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:rgba(0,0,0,.2)}
+.msg-row{display:flex;gap:8px;max-width:80%}
+.msg-row.me{align-self:flex-end;flex-direction:row-reverse}
+.msg-row.them{align-self:flex-start}
+.msg-bubble{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.5}
+.msg-row.me .msg-bubble{background:var(--grad);color:white;border-bottom-right-radius:4px}
+.msg-row.them .msg-bubble{background:var(--surface2);color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--border)}
+.msg-name{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:3px;padding-left:2px}
+.chat-input-wrap{padding:14px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.chat-input{flex:1;padding:10px 16px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:99px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:all .2s}
+.chat-input::placeholder{color:var(--text3)}
+.chat-input:focus{border-color:rgba(139,92,246,.4)}
+.chat-send-btn{width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.chat-send-btn:disabled{background:var(--surface2);color:var(--text3)}
+.chat-send-btn:not(:disabled){background:var(--grad);color:white;box-shadow:0 4px 12px rgba(139,92,246,.35)}
+.chat-send-btn:not(:disabled):hover{transform:scale(1.05)}
+.chat-send-btn svg{width:18px;height:18px}
+.audio-wrap{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.audio-track{display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(255,255,255,.03);border-radius:var(--radius-sm);border:1px solid var(--border);transition:all .2s}
+.audio-track:hover{border-color:rgba(139,92,246,.25);background:rgba(139,92,246,.04)}
+.audio-track.playing{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)}
+.play-btn{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.play-btn.idle{background:var(--surface2);color:var(--text2)}
+.play-btn.idle:hover{background:rgba(139,92,246,.2);color:var(--accent)}
+.play-btn.active-play{background:var(--grad);color:white;box-shadow:0 4px 14px rgba(139,92,246,.45)}
+.play-btn svg{width:20px;height:20px}
+.audio-info{flex:1;min-width:0}
+.audio-info strong{display:block;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.audio-info span{font-size:13px;color:var(--text2)}
+.vinyl{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid rgba(139,92,246,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vinyl-center{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.equalizer{display:flex;align-items:flex-end;gap:2px;height:20px}
+.eq-bar{width:3px;border-radius:2px;background:var(--accent);animation:eq .6s ease-in-out infinite}
+.eq-bar:nth-child(2){animation-delay:.1s}.eq-bar:nth-child(3){animation-delay:.2s}
+@keyframes eq{0%,100%{height:6px}50%{height:18px}}
+.upload-wrap{max-width:520px;margin:0 auto}
+.drop-zone{aspect-ratio:4/5;border-radius:var(--radius);border:2px dashed rgba(139,92,246,.3);background:rgba(139,92,246,.04);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:all .2s}
+.drop-zone:hover{border-color:rgba(139,92,246,.6);background:rgba(139,92,246,.08)}
+.drop-zone svg{width:52px;height:52px;color:var(--accent);opacity:.7}
+.preview-img{width:100%;border-radius:var(--radius);object-fit:cover;display:block;max-height:520px}
+.profile-wrap{max-width:480px;margin:0 auto}
+.profile-card{padding:32px}
+.profile-avatar-wrap{position:relative;display:inline-block;margin-bottom:24px}
+.profile-edit-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;opacity:0;cursor:pointer;transition:opacity .2s}
+.profile-avatar-wrap:hover .profile-edit-overlay{opacity:1}
+.profile-edit-overlay svg{width:26px;height:26px;color:white}
+.profile-stats{display:flex;gap:16px;justify-content:center;margin:16px 0 24px;flex-wrap:wrap}
+.stat-item{text-align:center}
+.stat-num{font-family:'Syne',sans-serif;font-weight:700;font-size:22px}
+.stat-lbl{font-size:12px;color:var(--text3);margin-top:2px}
+.label-text{display:block;font-size:12px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em}
+.avatar{border-radius:50%;object-fit:cover;flex-shrink:0}
+.avatar-fallback{border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;color:white;flex-shrink:0;background:var(--grad)}
+.empty-state{text-align:center;padding:60px 20px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.empty-icon{width:72px;height:72px;border-radius:22px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.15);display:flex;align-items:center;justify-content:center}
+.empty-icon svg{width:34px;height:34px;color:var(--accent);opacity:.6}
+.empty-state h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:700}
+.empty-state p{color:var(--text2);font-size:14px;max-width:280px}
+.section-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.section-icon{color:var(--accent)}
+.w-full{width:100%}
+.error-msg{color:var(--red);font-size:13px;background:rgba(244,63,94,.08);padding:10px 14px;border-radius:var(--radius-sm);text-align:center;border:1px solid rgba(244,63,94,.15)}
+.delete-btn{width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;background:transparent;color:var(--text3);display:flex;align-items:center;justify-content:center;transition:all .2s}
+.delete-btn:hover{background:rgba(244,63,94,.12);color:var(--red)}
+.delete-btn svg{width:16px;height:16px}
+.online-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 6px rgba(16,185,129,.5)}
+.app-footer{text-align:center;padding:28px 20px 16px;color:var(--text3);font-size:12px;border-top:1px solid var(--border);margin-top:40px}
+.app-footer .powered{display:block;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;color:var(--accent);opacity:.8;margin-top:5px}
+@media(max-width:768px){.desk-nav{display:none}.bottom-nav{display:flex;flex-direction:column;justify-content:center}.main{padding:16px 14px calc(var(--bottom-nav-h) + 20px)}.chat-messages{height:calc(100dvh - 320px)}.auth-card{padding:0}.stats-bar{gap:12px;padding:6px 12px}.profile-stats{gap:10px}}
+@media(min-width:769px){.bottom-nav{display:none!important}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .4s ease forwards}
+.fade-up-1{animation:fadeUp .4s .05s ease both}
+.fade-up-2{animation:fadeUp .4s .1s ease both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="toast-container"></div>
+<script>
+/* ===== UTILS ===== */
+const AudioCtx = window.AudioContext || window.webkitAudioContext; let actx = null;
+const playNotifSound = (type='chat') => {try{if(!actx)actx=new AudioCtx();const o=actx.createOscillator(),g=actx.createGain();o.connect(g);g.connect(actx.destination);const seqs={chat:[880,1108],photo:[660,880,1108],audio:[440,660],badge:[1108,1320,1568]};const seq=seqs[type]||seqs.chat;g.gain.setValueAtTime(.12,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.14*seq.length);seq.forEach((f,i)=>o.frequency.setValueAtTime(f,actx.currentTime+i*.12));o.type='sine';o.start(actx.currentTime);o.stop(actx.currentTime+.14*seq.length);}catch{}};
+const showToast = (msg, type='info') => {const c=document.getElementById('toast-container');const t=document.createElement('div');t.className='toast';const cols={info:'#8b5cf6',success:'#10b981',error:'#f43f5e',warning:'#f59e0b',chat:'#22d3ee',photo:'#ec4899',audio:'#f59e0b',badge:'#fbbf24'};t.innerHTML=`<div class="toast-dot" style="background:${cols[type]||cols.info}"></div><span>${msg}</span>`;c.appendChild(t);setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),250)},3500);};
+
+const compressImage = (file, maxWidth = 1080) => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if (w > maxWidth) { h = Math.round(h * (maxWidth / w)); w = maxWidth; }
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                canvas.toBlob((blob) => { resolve(new File([blob], file.name, { type: 'image/jpeg' })); }, 'image/jpeg', 0.85);
+            };
+        };
+    });
+};
+
+const LEVELS = [{min:0,name:'Novice',emoji:'🌱',color:'#6b7280'},{min:5,name:'Explorateur',emoji:'🔭',color:'#0ea5e9'},{min:15,name:'Créateur',emoji:'🎨',color:'#8b5cf6'},{min:30,name:'Actif',emoji:'⚡',color:'#f59e0b'},{min:50,name:'Influenceur',emoji:'🌟',color:'#ec4899'},{min:100,name:'Légende',emoji:'👑',color:'#fbbf24'}];
+const getLevel = (xp) => {let l=LEVELS[0];for(const lv of LEVELS){if(xp>=lv.min)l=lv;}const idx=LEVELS.indexOf(l);const nxt=LEVELS[idx+1];return{...l,xp,progress:nxt?Math.round(((xp-l.min)/(nxt.min-l.min))*100):100,nextXp:nxt?nxt.min:null};};
+const calcXP = (photos, msgs, audios, likes) => photos*3 + msgs*1 + audios*5 + likes*2;
+const VERIFIED = ['admin','darkmods','owner','verified'];
+const isVerified = (u) => VERIFIED.includes((u||'').toLowerCase());
+const THEMES = [{id:'default',color:'#8b5cf6',label:'Violet'},{id:'ocean',color:'#0ea5e9',label:'Océan'},{id:'rose',color:'#f43f5e',label:'Rose'},{id:'forest',color:'#10b981',label:'Forêt'},{id:'gold',color:'#f59e0b',label:'Or'}];
+const REACTIONS = ['❤️','🎉','🔥','🇦🇱','🤭','😂','👏','💜'];
+
+const translateText = async (text) => {try{const r=await fetch('https://libretranslate.de/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:text,source:'auto',target:'fr',format:'text'})});if(!r.ok)throw 0;const d=await r.json();return d.translatedText||null;}catch{return'[Traduction : API LibreTranslate Indisponible]';}};
+
+const { useState, useEffect, useRef, useCallback } = React;
+
+const Avatar = ({url, name, size=40, fontSize=16}) => {
+  if (url && url !== '') return React.createElement('img', {src: url, className: 'avatar', style: {width: size, height: size, minWidth: size}});
+  return React.createElement('div', {className: 'avatar-fallback', style: {width: size, height: size, minWidth: size, fontSize}}, (name||'A')[0].toUpperCase());
+};
+const VerifiedBadge = () => React.createElement('span', {className: 'verified-badge', title: 'Compte vérifié'}, React.createElement('svg', {viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2}, React.createElement('path', {strokeLinecap: 'round', strokeLinejoin: 'round', d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'})));
+
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isLogin, setIsLogin] = useState(true);
+  const [authForm, setAuthForm] = useState({username:'', password:'', fullName:''});
+  const [authError, setAuthError] = useState('');
+  const [sending, setSending] = useState(false);
+  const [photos, setPhotos] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMorePhotos, setHasMorePhotos] = useState(true);
+  const [stories, setStories] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [storyFile, setStoryFile] = useState(null);
+  const [captionText, setCaptionText] = useState('');
+  const [preview, setPreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadingStory, setUploadingStory] = useState(false);
+  const [isStoryMode, setIsStoryMode] = useState(false);
+  const [activeTab, setActiveTab] = useState('gallery');
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [commentInputs, setCommentInputs] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterBy, setFilterBy] = useState('recent');
+  const [reactions, setReactions] = useState({});
+  const [pickerOpen, setPickerOpen] = useState(null);
+  const [fullscreenImg, setFullscreenImg] = useState(null);
+  const [translatedMsgs, setTranslatedMsgs] = useState({});
+  const [translatingMsg, setTranslatingMsg] = useState(null);
+  const [translatedComments, setTranslatedComments] = useState({});
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const messagesEndRef = useRef(null);
+  const [audios, setAudios] = useState([]);
+  const [audioFile, setAudioFile] = useState(null);
+  const [audioTitle, setAudioTitle] = useState('');
+  const [audioArtist, setAudioArtist] = useState('');
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [currentPlaying, setCurrentPlaying] = useState(null);
+  const audioRef = useRef(null);
+  const [notifications, setNotifications] = useState({gallery:0, chat:0, audio:0});
+  const [editUsername, setEditUsername] = useState('');
+  const [editFullName, setEditFullName] = useState('');
+  const [profilePicFile, setProfilePicFile] = useState(null);
+  const [profilePicPreview, setProfilePicPreview] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('sq_theme') || 'default');
+  const [showThemePanel, setShowThemePanel] = useState(false);
+  const [liveStats, setLiveStats] = useState({online:1, postsToday:0, totalPhotos:0});
+  const [viewerStory, setViewerStory] = useState(null);
+  const [viewerStoryIdx, setViewerStoryIdx] = useState(0);
+  const [prevLevelName, setPrevLevelName] = useState(null);
+  const socketRef = useRef(null);
+
+  useEffect(() => { document.documentElement.setAttribute('data-theme', theme === 'default' ? '' : theme); localStorage.setItem('sq_theme', theme); }, [theme]);
+
+  // Chargement Initial
+  useEffect(() => {
+    fetch('/api/me', {credentials: 'include'}).then(r => r.json()).then(d => {
+      if(d && d.id) {
+          setUser(d); setEditUsername(d.username); setEditFullName(d.full_name);
+          fetchPhotos(1, false); fetchAudios(); fetchMessages(); fetchStories();
+      }
+    }).catch(()=>{}).finally(()=>setLoading(false));
+  }, []);
+
+  // WebSockets (Temps Réel)
+  useEffect(() => {
+      if(!user) return;
+      socketRef.current = io();
+      
+      socketRef.current.on('online_count', count => setLiveStats(s => ({...s, online: count})));
+      
+      socketRef.current.on('new_photo', photo => {
+          if (photo.user_id !== user.id) {
+              showToast('📸 Nouvelle photo publiée !', 'photo'); playNotifSound('photo');
+              if (activeTab !== 'gallery') setNotifications(n => ({...n, gallery: n.gallery + 1}));
+          }
+          setPhotos(prev => { if (!prev.find(p => p.id === photo.id)) return [photo, ...prev]; return prev; });
+      });
+
+      socketRef.current.on('new_message', msg => {
+          if (msg.user_id !== user.id) {
+              if (activeTab !== 'chat') { showToast(`💬 ${msg.current_fullname}`, 'chat'); playNotifSound('chat'); setNotifications(n => ({...n, chat: n.chat + 1})); }
+          }
+          setMessages(prev => [...prev, msg]);
+      });
+
+      socketRef.current.on('update_like', ({photoId, delta}) => {
+          setPhotos(prev => prev.map(p => p.id === photoId ? {...p, likesCount: Math.max(0, p.likesCount + delta)} : p));
+      });
+
+      socketRef.current.on('new_comment', comment => {
+          setPhotos(prev => prev.map(p => p.id === comment.photo_id ? {...p, comments: [...p.comments, comment]} : p));
+      });
+
+      return () => socketRef.current.disconnect();
+  }, [user, activeTab]);
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') { setFullscreenImg(null); setViewerStory(null); setShowThemePanel(false); setPickerOpen(null); } };
+    window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  useEffect(() => { if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({behavior: 'smooth'}); }, [messages]);
+
+  // API Fetchers
+  const fetchPhotos = useCallback(async (pageNum = 1, append = false) => {
+      setLoadingPhotos(true);
+      try {
+          const r = await fetch(`/api/photos?page=${pageNum}&limit=10`, {credentials: 'include'});
+          if (r.status === 401) { setUser(null); return; }
+          const d = await r.json();
+          if (d.length < 10) setHasMorePhotos(false); else setHasMorePhotos(true);
+          setPhotos(prev => {
+              if (!append) return d;
+              const newIds = new Set(d.map(x => x.id));
+              return [...prev.filter(x => !newIds.has(x.id)), ...d];
+          });
+      } catch {} finally { setLoadingPhotos(false); }
+  }, []);
+
+  const fetchMessages = async () => { try { const r = await fetch('/api/messages', {credentials: 'include'}); const d = await r.json(); setMessages(d||[]); } catch {} };
+  const fetchAudios = async () => { try { const r = await fetch('/api/audios', {credentials: 'include'}); const d = await r.json(); setAudios(d||[]); } catch {} };
+  const fetchStories = async () => { try { const r = await fetch('/api/stories', {credentials: 'include'}); const d = await r.json(); setStories(d||[]); } catch {} };
+
+  // Infinite Scroll Observer
+  const observer = useRef();
+  const lastPhotoElementRef = useCallback(node => {
+      if (loadingPhotos) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver(entries => {
+          if (entries[0].isIntersecting && hasMorePhotos) {
+              setPage(prevPage => { const next = prevPage + 1; fetchPhotos(next, true); return next; });
+          }
+      });
+      if (node) observer.current.observe(node);
+  }, [loadingPhotos, hasMorePhotos, fetchPhotos]);
+
+  const changeTab = (tab) => { setActiveTab(tab); setNotifications(n => ({...n, [tab]: 0})); setSearchQuery(''); setFilterBy('recent'); if(tab==='gallery'){setPage(1); fetchPhotos(1, false);} if(tab==='chat') fetchMessages(); if(tab==='audio') fetchAudios(); };
+
+  const handleAuth = async () => {
+      const {username, password, fullName} = authForm;
+      if (!username || !password) return;
+      setSending(true); setAuthError('');
+      try {
+          const url = isLogin ? '/api/auth/login' : '/api/auth/register';
+          const body = isLogin ? {username, password} : {username, password, full_name: fullName || username};
+          const r = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body), credentials: 'include'});
+          const d = await r.json();
+          if (d.user) {
+              setUser(d.user); setEditUsername(d.user.username); setEditFullName(d.user.full_name);
+              fetchPhotos(1, false); fetchAudios(); fetchMessages(); fetchStories();
+              showToast(isLogin ? `Bon retour, ${d.user.full_name} ! 👋` : `Bienvenue Sur SnapQuest ! 🎉`, 'success');
+              if(!isLogin) playNotifSound('badge');
+          } else { setAuthError(d.error || 'Erreur'); }
+      } catch { setAuthError('Erreur réseau'); } finally { setSending(false); }
+  };
+
+  const logout = async () => { await fetch('/api/auth/logout', {method: 'POST', credentials: 'include'}); setUser(null); window.location.reload(); };
+
+  const handleUpdateProfile = async () => { if(!editUsername) return; setSending(true); const fd = new FormData(); fd.append('username', editUsername); fd.append('full_name', editFullName); if(profilePicFile) fd.append('file', profilePicFile); try { const r = await fetch('/api/me/update', {method: 'POST', body: fd, credentials: 'include'}); const d = await r.json(); if(d.user) { setUser(d.user); setProfilePicFile(null); setProfilePicPreview(null); showToast('Profil mis à jour !', 'success'); } else { showToast(d.error || 'Erreur', 'error'); } } catch { showToast('Erreur réseau', 'error'); } finally { setSending(false); } };
+
+  // File Change avec Compression
+  const handleFileChange = async (e) => {
+      const f = e.target.files[0];
+      if (f) {
+          const compressed = await compressImage(f);
+          isStoryMode ? setStoryFile(compressed) : setSelectedFile(compressed);
+          setPreview(URL.createObjectURL(compressed));
+      }
+  };
+
+  const handleUpload = async () => { if(!selectedFile) return; setUploading(true); const fd = new FormData(); fd.append('file', selectedFile); fd.append('caption', captionText); try { const r = await fetch('/api/photos', {method: 'POST', body: fd, credentials: 'include'}); const d = await r.json(); if(d.id) { setSelectedFile(null); setPreview(null); setCaptionText(''); showToast('Photo publiée ! 📸', 'success'); changeTab('gallery'); } } catch { showToast('Erreur réseau', 'error'); } finally { setUploading(false); } };
+
+  const handleStoryUpload = async () => { if(!storyFile) return; setUploadingStory(true); const fd = new FormData(); fd.append('story', storyFile); fd.append('caption', captionText); try { const r = await fetch('/api/stories', {method: 'POST', body: fd, credentials: 'include'}); const d = await r.json(); if(d.id) { setStoryFile(null); setCaptionText(''); setIsStoryMode(false); setPreview(null); showToast('Story Publiée ! ✨', 'success'); fetchStories(); changeTab('gallery'); } } catch { showToast('Erreur côté serveur', 'warning'); } finally { setUploadingStory(false); } };
+
+  const handleAudioUpload = async () => { if(!audioFile) return; setUploadingAudio(true); const fd = new FormData(); fd.append('audio', audioFile); fd.append('title', audioTitle); fd.append('artist', audioArtist); try { const r = await fetch('/api/audios', {method: 'POST', body: fd, credentials: 'include'}); const d = await r.json(); if(d.id) { setAudioFile(null); setAudioTitle(''); setAudioArtist(''); showToast('Morceau ajouté ! 🎵', 'success'); fetchAudios(); } } catch { showToast('Erreur réseau', 'error'); } finally { setUploadingAudio(false); } };
+
+  const deletePhoto = async (id) => { if(!confirm('Supprimer cette photo ?')) return; await fetch('/api/photos/'+id, {method: 'DELETE', credentials: 'include'}); setPhotos(p => p.filter(x => x.id !== id)); showToast('Photo supprimée', 'info'); };
+  const deleteAudio = async (id) => { if(!confirm('Supprimer ?')) return; await fetch('/api/audios/'+id, {method: 'DELETE', credentials: 'include'}); setAudios(a => a.filter(x => x.id !== id)); if(currentPlaying === id) { audioRef.current?.pause(); setCurrentPlaying(null); } showToast('Supprimé', 'info'); };
+
+  const toggleLike = async (id) => {
+      setPhotos(photos.map(p => p.id === id ? {...p, isLikedByMe: !p.isLikedByMe, likesCount: p.isLikedByMe ? p.likesCount - 1 : p.likesCount + 1} : p));
+      await fetch('/api/photos/'+id+'/like', {method: 'POST', credentials: 'include'});
+  };
+
+  const toggleReaction = (photoId, emoji) => { setReactions(prev => { const key = `${photoId}_${emoji}`; const cur = prev[key] || {count:0, reacted:false}; return {...prev, [key]: {count: cur.reacted ? cur.count - 1 : cur.count + 1, reacted: !cur.reacted}}; }); setPickerOpen(null); };
+
+  const submitComment = async (photoId) => { const text = (commentInputs[photoId] || '').trim(); if(!text) return; await fetch('/api/photos/'+photoId+'/comments', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text}), credentials: 'include'}); setCommentInputs({...commentInputs, [photoId]: ''}); };
+
+  const sendChatMessage = async () => { const text = newMessage.trim(); if(!text) return; setNewMessage(''); await fetch('/api/messages', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text}), credentials: 'include'}); };
+
+  const handleTranslateMsg = async (id, text) => { setTranslatingMsg(id); const t = await translateText(text); setTranslatedMsgs(p => ({...p, [id]: t})); setTranslatingMsg(null); };
+  const handleTranslateComment = async (id, text) => { const t = await translateText(text); setTranslatedComments(p => ({...p, [id]: t})); };
+
+  const playAudio = (id, url) => { if(currentPlaying === id) { audioRef.current?.pause(); setCurrentPlaying(null); } else { if(audioRef.current) { audioRef.current.src = url; audioRef.current.play(); setCurrentPlaying(id); } } };
+
+  const myPhotosCount = photos.filter(p => p.user_id === user?.id).length;
+  const myLikesCount = photos.reduce((a, p) => a + (p.user_id === user?.id ? p.likesCount : 0), 0);
+  const myAudiosCount = audios.filter(a => a.user_id === user?.id).length;
+  const myMsgsCount = messages.filter(m => m.user_id === user?.id).length;
+  const myXP = calcXP(myPhotosCount, myMsgsCount, myAudiosCount, myLikesCount);
+  const myLevel = getLevel(myXP);
+
+  const filteredPhotos = photos.filter(p => { const q = searchQuery.toLowerCase(); const n = (p.current_fullname || p.user_name || '').toLowerCase(); const c = (p.caption || '').toLowerCase(); const match = !q || n.includes(q) || c.includes(q); if(filterBy === 'mine') return match && p.user_id === user?.id; if(filterBy === 'liked') return match && p.isLikedByMe; return match; }).sort((a,b) => { if(filterBy === 'popular') return b.likesCount - a.likesCount; return new Date(b.created_date) - new Date(a.created_date); });
+
+  const storyMap = {}; stories.forEach(s => { if(!storyMap[s.user_id]) storyMap[s.user_id] = {user_id: s.user_id, name: s.current_fullname || s.user_name, avatar: s.user_avatar, stories: []}; storyMap[s.user_id].stories.push(s); });
+  const storyGroups = Object.values(storyMap);
+
+  const navItems = [
+    {id:'gallery', label:'Actu', notif:notifications.gallery, icon:React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'}))},
+    {id:'upload', label:'Poster', notif:0, icon:React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M12 4v16m8-8H4'}))},
+    {id:'chat', label:'Chat', notif:notifications.chat, icon:React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'}))},
+    {id:'audio', label:'Musique', notif:notifications.audio, icon:React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3'}))},
+    {id:'profile', label:'Moi', notif:0, icon:React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'}))}
+  ];
+
+  if(loading)return React.createElement('div',{className:'loading-screen'},React.createElement('div',{style:{textAlign:'center'}},React.createElement('div',{className:'spinner',style:{margin:'0 auto 16px'}}),React.createElement('div',{style:{fontFamily:'Syne,sans-serif',fontSize:14,color:'var(--text3)'}},'SnapQuest...')));
+
+  if(!user)return React.createElement('div',{className:'auth-screen'},
+    React.createElement('div',{className:'auth-center'},
+      React.createElement('div',{className:'auth-card'},
+        React.createElement('div',{className:'auth-logo-wrap fade-up'},
+          React.createElement('div',{className:'auth-logo-icon'},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2,width:38,height:38},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z'}),React.createElement('circle',{cx:12,cy:13,r:3}))),
+          React.createElement('div',{className:'auth-title'},'SnapQuest'),
+          React.createElement('div',{className:'auth-subtitle'},isLogin?'Ravi de te revoir 👋':'Rejoins La Communauté')
+        ),
+        React.createElement('div',{className:'card fade-up-1',style:{padding:28}},
+          React.createElement('div',{className:'auth-form'},
+            React.createElement('input',{className:'input',type:'text',placeholder:"Nom d'utilisateur",value:authForm.username,onChange:e=>setAuthForm({...authForm,username:e.target.value}),onKeyDown:e=>e.key==='Enter'&&handleAuth()}),
+            React.createElement('input',{className:'input',type:'password',placeholder:'Mot de passe',value:authForm.password,onChange:e=>setAuthForm({...authForm,password:e.target.value}),onKeyDown:e=>e.key==='Enter'&&handleAuth()}),
+            !isLogin&&React.createElement('input',{className:'input',type:'text',placeholder:'Nom complet (optionnel)',value:authForm.fullName,onChange:e=>setAuthForm({...authForm,fullName:e.target.value})}),
+            authError&&React.createElement('div',{className:'error-msg'},authError),
+            React.createElement('button',{className:'btn-primary w-full',disabled:!authForm.username||!authForm.password||sending,onClick:handleAuth,style:{padding:14}},sending?React.createElement('div',{className:'spinner',style:{width:20,height:20,borderWidth:2}}):(isLogin?'Se connecter':'Créer mon compte')),
+            React.createElement('button',{onClick:()=>{setIsLogin(!isLogin);setAuthError('');setAuthForm({username:'',password:'',fullName:''}); },style:{background:'none',border:'none',cursor:'pointer',color:'var(--accent)',fontSize:14,fontWeight:500,fontFamily:'DM Sans,sans-serif',padding:'4px 0'}},isLogin?"Pas encore de compte ? S'inscrire →":'← Se connecter')
+          )
+        )
+      )
+    ),
+    React.createElement('div',{className:'auth-footer'},React.createElement('div',{className:'auth-footer-inner'},'© 2026 SnapQuest ',React.createElement('span',{className:'powered'},'— Powered by DarkMods')))
+  );
+
+  return React.createElement(React.Fragment,null,
+    React.createElement('audio',{ref:audioRef,onEnded:()=>setCurrentPlaying(null)}),
+
+    fullscreenImg&&React.createElement('div',{className:'fullscreen-overlay',onClick:()=>setFullscreenImg(null)},
+      React.createElement('img',{src:fullscreenImg.url,className:'fullscreen-img',alt:'',onClick:e=>e.stopPropagation()}),
+      React.createElement('button',{className:'fullscreen-close',onClick:()=>setFullscreenImg(null)},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2,width:22,height:22},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M6 18L18 6M6 6l12 12'}))),
+      fullscreenImg.caption&&React.createElement('div',{className:'fullscreen-info',onClick:e=>e.stopPropagation()},fullscreenImg.caption)
+    ),
+
+    viewerStory&&React.createElement('div',{className:'story-overlay'},
+      React.createElement('div',{className:'story-viewer'},
+        React.createElement('div',{className:'story-progress-bar'},viewerStory.stories.map((s,i)=>React.createElement('div',{key:s.id,className:'story-seg'},i<viewerStoryIdx?React.createElement('div',{style:{width:'100%',height:'100%',background:'white',borderRadius:99}}):i===viewerStoryIdx?React.createElement('div',{className:'story-seg-fill',onAnimationEnd:()=>{if(viewerStoryIdx<viewerStory.stories.length-1)setViewerStoryIdx(viewerStoryIdx+1);else setViewerStory(null);}}):null))),
+        React.createElement('div',{className:'story-header-overlay'},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10}},React.createElement(Avatar,{url:viewerStory.avatar,name:viewerStory.name,size:36,fontSize:14}),React.createElement('div',null,React.createElement('div',{style:{color:'white',fontWeight:600,fontSize:14,textShadow:'0 1px 4px rgba(0,0,0,.5)'}},viewerStory.name),React.createElement('div',{style:{color:'rgba(255,255,255,.7)',fontSize:11}},'Story • 24h'))),
+          React.createElement('button',{className:'story-close',onClick:()=>setViewerStory(null)},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2,width:18,height:18},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M6 18L18 6M6 6l12 12'})))
+        ),
+        React.createElement('img',{src:viewerStory.stories[viewerStoryIdx]?.image_url,className:'story-img',alt:''}),
+        viewerStory.stories[viewerStoryIdx]?.caption&&React.createElement('div',{className:'story-caption-overlay'},viewerStory.stories[viewerStoryIdx].caption)
+      )
+    ),
+
+    showThemePanel&&React.createElement('div',{className:'theme-panel',onClick:e=>e.stopPropagation()},
+      React.createElement('div',{style:{fontFamily:'Syne,sans-serif',fontWeight:700,fontSize:14,marginBottom:2}},'🎨 Thème'),
+      React.createElement('div',{className:'theme-grid'},THEMES.map(t=>React.createElement('div',{key:t.id,title:t.label,className:`theme-dot ${theme===t.id?'active':''}`,style:{background:t.color},onClick:()=>{setTheme(t.id);setShowThemePanel(false);showToast(`Thème ${t.label} ✓`,'info');}})))
+    ),
+
+    React.createElement('header',{className:'header',onClick:()=>{setShowThemePanel(false);setPickerOpen(null);}},
+      React.createElement('div',{className:'header-inner'},
+        React.createElement('div',{className:'logo',onClick:()=>changeTab('gallery')},
+          React.createElement('div',{className:'logo-icon'},React.createElement('svg',{width:20,height:20,fill:'none',stroke:'white',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z'}),React.createElement('circle',{cx:12,cy:13,r:3}))),
+          React.createElement('span',{className:'logo-text'},'SnapQuest')
+        ),
+        React.createElement('nav',{className:'desk-nav'},navItems.map(item=>React.createElement('button',{key:item.id,className:`desk-nav-btn ${activeTab===item.id?'active':''}`,onClick:()=>changeTab(item.id)},React.createElement('div',{style:{position:'relative'}},item.icon,item.notif>0&&React.createElement('span',{className:'notif-badge'},item.notif>9?'9+':item.notif)),React.createElement('span',null,item.label)))),
+        React.createElement('div',{className:'header-actions'},
+          React.createElement('button',{className:'icon-btn',onClick:e=>{e.stopPropagation();setShowThemePanel(!showThemePanel);},title:'Thème'},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01'}))),
+          React.createElement('div',{className:'avatar-ring',onClick:()=>changeTab('profile')},React.createElement(Avatar,{url:user.profile_pic,name:user.full_name,size:32})),
+          React.createElement('button',{className:'icon-btn logout-btn',onClick:logout,title:'Déconnexion'},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1'})))
+        )
+      )
+    ),
+
+    React.createElement('div',{className:'stats-bar'},
+      React.createElement('div',{className:'stat-pill'},React.createElement('span',{className:'dot'}),`${liveStats.online} en ligne`),
+      React.createElement('div',{className:'stat-pill'},'📸 ',`${liveStats.postsToday} post${liveStats.postsToday!==1?'s':''} aujourd'hui`),
+      React.createElement('div',{className:'stat-pill'},'🖼️ ',`${liveStats.totalPhotos} photos`),
+      React.createElement('div',{className:'stat-pill'},myLevel.emoji,' ',`${myLevel.name} · ${myXP} XP`)
+    ),
+
+    React.createElement('div',{className:'main',onClick:()=>{setShowThemePanel(false);setPickerOpen(null);}},
+
+      activeTab==='gallery'&&React.createElement('div',{className:'feed fade-up'},
+        React.createElement('div',{className:'stories-bar'},
+          React.createElement('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',gap:6,flexShrink:0}},
+            React.createElement('div',{className:'story-add-btn',onClick:()=>{setIsStoryMode(true);changeTab('upload');}},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M12 4v16m8-8H4'}))),
+            React.createElement('span',{style:{fontSize:11,color:'var(--accent)',fontWeight:600}},'Ma story')
+          ),
+          storyGroups.map(g=>React.createElement('div',{key:g.user_id,className:'story-item',onClick:()=>{setViewerStory(g);setViewerStoryIdx(0);}},
+            React.createElement('div',{className:'story-ring'},React.createElement('div',{className:'story-ring-inner'},React.createElement(Avatar,{url:g.avatar,name:g.name,size:52,fontSize:20}))),
+            React.createElement('div',{className:'story-name'},g.name),
+            React.createElement('div',{style:{fontSize:9,color:'var(--text3)',textAlign:'center'}},'24h')
+          ))
+        ),
+        React.createElement('div',{className:'search-wrap'},
+          React.createElement('svg',{className:'search-icon',fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0'})),
+          React.createElement('input',{className:'search-input',type:'text',placeholder:'Rechercher une photo, un utilisateur...',value:searchQuery,onChange:e=>setSearchQuery(e.target.value)})
+        ),
+        React.createElement('div',{className:'filter-row'},
+          [{id:'recent',label:'🕐 Récent'},{id:'popular',label:'🔥 Populaire'},{id:'mine',label:'👤 Mes posts'},{id:'liked',label:'❤️ Aimés'}].map(f=>
+            React.createElement('button',{key:f.id,className:`filter-chip ${filterBy===f.id?'active':''}`,onClick:()=>setFilterBy(f.id)},f.label)
+          )
+        ),
+        filteredPhotos.length===0&&!loadingPhotos?React.createElement('div',{className:'card'},React.createElement('div',{className:'empty-state'},
+          React.createElement('div',{className:'empty-icon'},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'}))),
+          React.createElement('h3',null,searchQuery?'Aucun résultat':'Aucune photo'),
+          React.createElement('p',null,searchQuery?`Rien pour "${searchQuery}"`:'Sois le premier à partager un moment !'),
+          !searchQuery&&React.createElement('button',{className:'btn-primary',onClick:()=>changeTab('upload')},'📸 Publier Une Photo')
+        )):
+        filteredPhotos.map((photo,i)=>{
+          const displayName=photo.current_fullname||photo.user_name;
+          const username=photo.current_username||photo.user_name;
+          const isOwner=photo.user_id===user.id;
+          const verified=isVerified(username);
+          const isLast = filteredPhotos.length === i + 1;
+          
+          return React.createElement('div',{key:photo.id, ref: isLast ? lastPhotoElementRef : null, className:'post-card'},
+            React.createElement('div',{className:'post-header'},
+              React.createElement('div',{className:'post-user'},
+                React.createElement(Avatar,{url:photo.user_avatar,name:displayName,size:44,fontSize:18}),
+                React.createElement('div',null,
+                  React.createElement('div',{style:{fontWeight:600,fontSize:15,display:'flex',alignItems:'center',gap:4}},displayName,verified&&React.createElement(VerifiedBadge)),
+                  React.createElement('div',{style:{fontSize:12,color:'var(--text3)'}},new Date(photo.created_date).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))
+                )
+              ),
+              isOwner&&React.createElement('button',{className:'delete-btn',onClick:()=>deletePhoto(photo.id)},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'})))
+            ),
+            React.createElement('img',{src:photo.image_url,alt:photo.caption||'',className:'post-image',loading:'lazy',onClick:()=>setFullscreenImg({url:photo.image_url,caption:photo.caption})}),
+            React.createElement('div',{className:'post-actions'},
+              React.createElement('button',{className:`like-btn ${photo.isLikedByMe?'liked':''}`,onClick:()=>toggleLike(photo.id)},
+                React.createElement('svg',{fill:photo.isLikedByMe?'currentColor':'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'})),
+                photo.likesCount
+              ),
+              React.createElement('div',{style:{display:'flex',alignItems:'center',gap:7,color:'var(--text2)',fontSize:15,fontWeight:600}},React.createElement('svg',{width:22,height:22,fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'})),photo.comments?.length||0),
+              React.createElement('div',{style:{position:'relative',marginLeft:'auto'}},
+                React.createElement('button',{className:'btn-ghost',style:{padding:'5px 12px',fontSize:13},onClick:e=>{e.stopPropagation();setPickerOpen(pickerOpen===photo.id?null:photo.id);}},React.createElement('span',{style:{fontSize:16}},'😊'),' Réagir'),
+                pickerOpen===photo.id&&React.createElement('div',{className:'reaction-picker',onClick:e=>e.stopPropagation()},
+                  REACTIONS.map(emoji=>React.createElement('button',{key:emoji,className:'reaction-pick-btn',onClick:()=>toggleReaction(photo.id,emoji)},emoji))
+                )
+              )
+            ),
+            (() => {
+              const active = REACTIONS.map(emoji => {
+                const key = `${photo.id}_${emoji}`;
+                const r = reactions[key];
+                if (!r || r.count === 0) return null;
+                return React.createElement('button',{key:emoji,className:`reaction-btn ${r.reacted?'reacted':''}`,onClick:()=>toggleReaction(photo.id,emoji)},emoji,' ',r.count);
+              }).filter(Boolean);
+              return active.length > 0 ? React.createElement('div',{className:'reactions-row'},active) : null;
+            })(),
+            photo.caption&&React.createElement('div',{className:'post-caption'},React.createElement('strong',null,displayName),photo.caption),
+            photo.comments&&photo.comments.length>0&&React.createElement('div',{className:'comments-list'},
+              photo.comments.map(c=>{
+                const cn=c.current_fullname||c.user_name;
+                return React.createElement('div',{key:c.id,className:'comment-item'},
+                  React.createElement(Avatar,{url:c.user_avatar,name:cn,size:26,fontSize:10}),
+                  React.createElement('div',{style:{flex:1}},
+                    React.createElement('strong',null,cn),
+                    React.createElement('span',null,c.text),
+                    translatedComments[c.id]&&React.createElement('div',{className:'translated-text'},'🌐 ',translatedComments[c.id]),
+                    React.createElement('button',{className:'translate-btn',onClick:()=>handleTranslateComment(c.id,c.text)},translatedComments[c.id]?'✓ Traduit':'🌐 Traduire')
+                  )
+                );
+              })
+            ),
+            React.createElement('div',{className:'comment-input-wrap'},
+              React.createElement(Avatar,{url:user.profile_pic,name:user.full_name,size:30,fontSize:12}),
+              React.createElement('input',{type:'text',placeholder:'Ajouter un commentaire...',className:'comment-input',value:commentInputs[photo.id]||'',onChange:e=>setCommentInputs({...commentInputs,[photo.id]:e.target.value}),onKeyDown:e=>e.key==='Enter'&&submitComment(photo.id)}),
+              React.createElement('button',{className:'comment-send-btn',disabled:!(commentInputs[photo.id]||'').trim(),onClick:()=>submitComment(photo.id)},'Envoyer')
+            )
+          );
+        }),
+        loadingPhotos&&React.createElement('div',{style:{display:'flex',justifyContent:'center',padding:'20px'}}, React.createElement('div',{className:'spinner'}))
+      ),
+
+      activeTab==='upload'&&React.createElement('div',{className:'upload-wrap fade-up'},
+        React.createElement('div',{className:'section-title'},React.createElement('span',{className:'section-icon'},React.createElement('svg',{width:22,height:22,fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M12 4v16m8-8H4'}))),'Nouvelle publication'),
+        React.createElement('div',{style:{display:'flex',gap:8,marginBottom:16}},
+          React.createElement('button',{className:`filter-chip ${!isStoryMode?'active':''}`,onClick:()=>setIsStoryMode(false)},'📸 Photo'),
+          React.createElement('button',{className:`filter-chip ${isStoryMode?'active':''}`,onClick:()=>setIsStoryMode(true)},'✨ Story 24h')
+        ),
+        React.createElement('div',{className:'card',style:{padding:24}},
+          !preview?React.createElement('div',{className:'drop-zone',onClick:()=>document.getElementById('file-input').click()},
+            React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:1.5},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12'})),
+            React.createElement('div',{style:{fontFamily:'Syne,sans-serif',fontWeight:700,fontSize:16,color:'var(--accent)'}},isStoryMode?'✨ Importer une story':'📸 Importer Une Photo'),
+            React.createElement('div',{style:{fontSize:13,color:'var(--text3)'}},isStoryMode?'Visible 24h · Optimisation Auto':'Compression automatique côté client')
+          ):React.createElement('div',null,
+            React.createElement('img',{src:preview,className:'preview-img',alt:'preview'}),
+            React.createElement('button',{onClick:()=>{setSelectedFile(null);setStoryFile(null);setPreview(null);},style:{marginTop:12,background:'rgba(244,63,94,.1)',color:'var(--red)',border:'1px solid rgba(244,63,94,.2)',padding:'8px 16px',borderRadius:'var(--radius-sm)',cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontWeight:500,fontSize:14,width:'100%'}},'✕ Retirer')
+          ),
+          React.createElement('input',{id:'file-input',type:'file',accept:'image/*',style:{display:'none'},onChange:handleFileChange}),
+          React.createElement('textarea',{className:'input',placeholder:isStoryMode?'Texte sur ta story...':'Décris ce moment...',value:captionText,onChange:e=>setCaptionText(e.target.value),rows:3,style:{marginTop:14}}),
+          React.createElement('button',{className:'btn-primary w-full',disabled:(!selectedFile&&!storyFile)||uploading||uploadingStory,onClick:isStoryMode?handleStoryUpload:handleUpload,style:{marginTop:14}},
+            (uploading||uploadingStory)?React.createElement(React.Fragment,null,React.createElement('div',{className:'spinner',style:{width:18,height:18,borderWidth:2}}),'Publication...'):isStoryMode?'✨ Publier La Story':'📸 Publier Maintenant'
+          )
+        )
+      ),
+
+      activeTab==='chat'&&React.createElement('div',{className:'chat-wrap fade-up'},
+        React.createElement('div',{className:'chat-box'},
+          React.createElement('div',{className:'chat-header'},
+            React.createElement('div',{className:'chat-header-icon'},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z'}))),
+            React.createElement('div',null,
+              React.createElement('div',{style:{fontFamily:'Syne,sans-serif',fontWeight:700,fontSize:16}},'Salon Global'),
+              React.createElement('div',{style:{fontSize:12,color:'var(--text2)',display:'flex',alignItems:'center',gap:6,marginTop:2}},React.createElement('span',{className:'online-dot'}),`${liveStats.online} en ligne`)
+            )
+          ),
+          React.createElement('div',{className:'chat-messages'},
+            messages.length===0?React.createElement('div',{style:{textAlign:'center',paddingTop:40,color:'var(--text3)',fontSize:14}},'👋 Dites Bonjour À La Communauté !'):
+            messages.map(m=>{
+              const isMe=m.user_id===user.id;
+              const msgName=m.current_fullname||m.user_name;
+              const translated=translatedMsgs[m.id];
+              const isTranslating=translatingMsg===m.id;
+              return React.createElement('div',{key:m.id,className:`msg-row ${isMe?'me':'them'}`},
+                React.createElement(Avatar,{url:m.user_avatar,name:msgName,size:32,fontSize:12}),
+                React.createElement('div',{style:{display:'flex',flexDirection:'column',alignItems:isMe?'flex-end':'flex-start'}},
+                  !isMe&&React.createElement('div',{className:'msg-name'},msgName),
+                  React.createElement('div',{className:'msg-bubble'},m.text,
+                    translated&&React.createElement('div',{style:{fontSize:12,marginTop:4,opacity:.75,fontStyle:'italic',borderTop:'1px solid rgba(255,255,255,.15)',paddingTop:4}},'🌐 ',translated),
+                    !isMe&&React.createElement('div',null,React.createElement('button',{className:'translate-btn',disabled:isTranslating,onClick:()=>handleTranslateMsg(m.id,m.text)},isTranslating?'⏳...':translated?'✓ Traduit':'🌐 Traduire'))
+                  )
+                )
+              );
+            }),
+            React.createElement('div',{ref:messagesEndRef})
+          ),
+          React.createElement('div',{className:'chat-input-wrap'},
+            React.createElement(Avatar,{url:user.profile_pic,name:user.full_name,size:34,fontSize:13}),
+            React.createElement('input',{className:'chat-input',type:'text',placeholder:'Message... (Entrée pour envoyer)',value:newMessage,onChange:e=>setNewMessage(e.target.value),onKeyDown:e=>e.key==='Enter'&&sendChatMessage()}),
+            React.createElement('button',{className:'chat-send-btn',disabled:!newMessage.trim(),onClick:sendChatMessage},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M12 19l9 2-9-18-9 18 9-2zm0 0v-8'})))
+          )
+        )
+      ),
+
+      activeTab==='audio'&&React.createElement('div',{className:'audio-wrap fade-up'},
+        React.createElement('div',{className:'section-title'},React.createElement('span',{className:'section-icon'},React.createElement('svg',{width:22,height:22,fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3'}))),'Playlist Communautaire'),
+        React.createElement('div',{className:'card',style:{padding:20}},
+          React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+            React.createElement('div',{onClick:()=>document.getElementById('audio-input').click(),style:{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'rgba(139,92,246,.06)',border:'1px dashed rgba(139,92,246,.3)',borderRadius:'var(--radius-sm)',cursor:'pointer'}},
+              React.createElement('svg',{width:20,height:20,fill:'none',stroke:'var(--accent)',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3'})),
+              React.createElement('span',{style:{fontSize:14,color:audioFile?'var(--text)':'var(--text3)',fontWeight:500}},audioFile?`🎵 ${audioFile.name}`:'Choisir un fichier audio...')
+            ),
+            React.createElement('input',{id:'audio-input',type:'file',accept:'audio/*',style:{display:'none'},onChange:e=>setAudioFile(e.target.files[0])}),
+            React.createElement('div',{style:{display:'flex',gap:8}},
+              React.createElement('input',{className:'input',type:'text',placeholder:'Titre',value:audioTitle,onChange:e=>setAudioTitle(e.target.value)}),
+              React.createElement('input',{className:'input',type:'text',placeholder:'Artiste',value:audioArtist,onChange:e=>setAudioArtist(e.target.value)})
+            ),
+            React.createElement('button',{className:'btn-primary w-full',disabled:!audioFile||uploadingAudio,onClick:handleAudioUpload},uploadingAudio?React.createElement(React.Fragment,null,React.createElement('div',{className:'spinner',style:{width:18,height:18,borderWidth:2}}),'Upload...'):'🎵 Ajouter À La Playlist')
+          )
+        ),
+        audios.length===0?React.createElement('div',{className:'card'},React.createElement('div',{className:'empty-state'},React.createElement('h3',null,'Playlist vide'),React.createElement('p',null,'Sois le premier à ajouter un morceau !'))):
+        React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:8}},
+          audios.map(audio=>{
+            const isOwner=audio.user_id===user.id;
+            const isPlaying=currentPlaying===audio.id;
+            const trackName=audio.current_fullname||audio.user_name;
+            return React.createElement('div',{key:audio.id,className:`audio-track ${isPlaying?'playing':''}`},
+              React.createElement('button',{className:`play-btn ${isPlaying?'active-play':'idle'}`,onClick:()=>playAudio(audio.id,audio.file_url)},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},isPlaying?React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z'}):React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z'}))),
+              React.createElement('div',{className:'vinyl',style:isPlaying?{animation:'spin 2s linear infinite'}:{}},React.createElement('div',{className:'vinyl-center'})),
+              React.createElement('div',{className:'audio-info'},React.createElement('strong',null,audio.title),React.createElement('span',null,audio.artist)),
+              isPlaying&&React.createElement('div',{className:'equalizer'},React.createElement('div',{className:'eq-bar'}),React.createElement('div',{className:'eq-bar'}),React.createElement('div',{className:'eq-bar'})),
+              React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginLeft:'auto'}},
+                React.createElement(Avatar,{url:audio.user_avatar,name:trackName,size:28,fontSize:11}),
+                isOwner&&React.createElement('button',{className:'delete-btn',onClick:()=>deleteAudio(audio.id)},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'})))
+              )
+            );
+          })
+        )
+      ),
+
+      activeTab==='profile'&&React.createElement('div',{className:'profile-wrap fade-up'},
+        React.createElement('div',{className:'card profile-card'},
+          React.createElement('div',{style:{textAlign:'center'}},
+            React.createElement('div',{className:'profile-avatar-wrap',onClick:()=>document.getElementById('profile-pic-input').click()},
+              React.createElement(Avatar,{url:profilePicPreview||user.profile_pic,name:user.full_name,size:96,fontSize:36}),
+              React.createElement('div',{className:'profile-edit-overlay'},React.createElement('svg',{fill:'none',stroke:'currentColor',viewBox:'0 0 24 24',strokeWidth:2},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z'})))
+            ),
+            React.createElement('input',{id:'profile-pic-input',type:'file',accept:'image/*',style:{display:'none'},onChange:e=>{const f=e.target.files[0];if(f){setProfilePicFile(f);const r=new FileReader();r.onloadend=()=>setProfilePicPreview(r.result);r.readAsDataURL(f);}}}),
+            React.createElement('div',{style:{fontFamily:'Syne,sans-serif',fontWeight:700,fontSize:22,marginTop:14,display:'flex',alignItems:'center',justifyContent:'center',gap:6}},user.full_name,isVerified(user.username)&&React.createElement(VerifiedBadge)),
+            React.createElement('div',{style:{color:'var(--text3)',fontSize:14,marginTop:4,fontFamily:'DM Mono,monospace'}},`@${user.username}`),
+            React.createElement('div',{style:{margin:'16px auto',maxWidth:240}},
+              React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+                React.createElement('span',{className:'level-badge',style:{color:myLevel.color,borderColor:myLevel.color+'44',background:myLevel.color+'11'}},myLevel.emoji,' ',myLevel.name),
+                React.createElement('span',{style:{color:'var(--text3)',fontSize:12}},`${myXP} XP`)
+              ),
+              React.createElement('div',{className:'xp-bar-wrap'},React.createElement('div',{className:'xp-bar-fill',style:{width:`${myLevel.progress}%`}})),
+              myLevel.nextXp&&React.createElement('div',{style:{fontSize:11,color:'var(--text3)',marginTop:5}},`${myLevel.nextXp-myXP} XP pour le prochain niveau`)
+            ),
+            React.createElement('div',{className:'profile-stats'},
+              React.createElement('div',{className:'stat-item'},React.createElement('div',{className:'stat-num'},myPhotosCount),React.createElement('div',{className:'stat-lbl'},'Photos')),
+              React.createElement('div',{className:'stat-item'},React.createElement('div',{className:'stat-num'},myLikesCount),React.createElement('div',{className:'stat-lbl'},'Likes')),
+              React.createElement('div',{className:'stat-item'},React.createElement('div',{className:'stat-num'},myAudiosCount),React.createElement('div',{className:'stat-lbl'},'Morceaux')),
+              React.createElement('div',{className:'stat-item'},React.createElement('div',{className:'stat-num'},myMsgsCount),React.createElement('div',{className:'stat-lbl'},'Messages'))
+            )
+          ),
+          React.createElement('div',{style:{borderTop:'1px solid var(--border)',paddingTop:20,display:'flex',flexDirection:'column',gap:12}},
+            React.createElement('div',null,React.createElement('label',{className:'label-text'},'Nom complet'),React.createElement('input',{className:'input',type:'text',value:editFullName,onChange:e=>setEditFullName(e.target.value)})),
+            React.createElement('div',null,React.createElement('label',{className:'label-text'},"Nom d'utilisateur"),React.createElement('input',{className:'input',type:'text',value:editUsername,onChange:e=>setEditUsername(e.target.value)})),
+            React.createElement('button',{className:'btn-primary w-full',disabled:!editUsername||sending,onClick:handleUpdateProfile,style:{marginTop:4}},sending?React.createElement(React.Fragment,null,React.createElement('div',{className:'spinner',style:{width:18,height:18,borderWidth:2}}),'Sauvegarde...'):'✓ Sauvegarder'),
+            React.createElement('button',{onClick:logout,style:{padding:12,borderRadius:'var(--radius-sm)',border:'1px solid rgba(244,63,94,.2)',background:'rgba(244,63,94,.06)',color:'var(--red)',cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:14,fontWeight:500}},'↩ Se déconnecter')
+          )
+        )
+      ),
+
+      React.createElement('footer',{className:'app-footer'},
+        '© 2026 SnapQuest — The Future',
+        React.createElement('span',{className:'powered'},'Powered By DarkMods')
+      )
+    ),
+
+    React.createElement('nav',{className:'bottom-nav'},
+      React.createElement('div',{className:'bottom-nav-inner'},
+        navItems.map(item=>React.createElement('button',{key:item.id,className:`mob-nav-btn ${activeTab===item.id?'active':''}`,onClick:()=>changeTab(item.id)},
+          React.createElement('div',{className:'mob-icon-wrap'},item.icon,item.notif>0&&React.createElement('span',{className:'mob-notif-badge'},item.notif>9?'9+':item.notif)),item.label
+        ))
+      )
+    )
+  );
+};
+
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
+</script>
+</body>
+</html>
